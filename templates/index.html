@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HoganLiveStream</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <style>
+      .custom-loader {
+        width: 50px;
+        height: 50px;
+        border: 5px solid #fff;
+        border-bottom-color: transparent;
+        border-radius: 50%;
+        display: inline-block;
+        box-sizing: border-box;
+        animation: rotation 1s linear infinite;
+      }
+      @keyframes rotation {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body class="bg-black text-white h-screen w-screen overflow-hidden">
+    <div class="relative h-full w-full">
+      <!-- Video Player -->
+      <video
+        id="videoPlayer"
+        class="absolute top-0 left-0 w-full h-full object-cover"
+        autoplay
+        muted
+      ></video>
+
+      <!-- Loader -->
+      <div
+        id="loader"
+        class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-70 z-20"
+      >
+        <div class="custom-loader"></div>
+      </div>
+
+      <!-- Top Right Controls -->
+      <div class="absolute top-4 right-4 flex space-x-4 z-10">
+        <button
+          id="analyticsBtn"
+          class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
+        >
+          Analytics
+        </button>
+        <button
+          id="loginBtn"
+          class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+        >
+          Login
+        </button>
+        <button
+          id="adminBtn"
+          class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded hidden"
+        >
+          Admin Panel
+        </button>
+      </div>
+
+      <!-- Bottom Right Controls -->
+      <div class="absolute bottom-4 right-4 flex space-x-4 z-10">
+        <button
+          id="muteBtn"
+          class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
+        >
+          Unmute
+        </button>
+        <button
+          id="fullscreenBtn"
+          class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+        >
+          Fullscreen
+        </button>
+      </div>
+    </div>
+
+    <!-- Analytics Modal -->
+    <div
+      id="analyticsModal"
+      class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-30"
+    >
+      <div
+        class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white"
+      >
+        <div class="mt-3 text-center">
+          <h3 class="text-lg leading-6 font-medium text-gray-900">Analytics</h3>
+          <div id="analyticsContent" class="mt-2 px-7 py-3 text-gray-700"></div>
+          <div class="items-center px-4 py-3">
+            <button
+              id="closeAnalyticsBtn"
+              class="px-4 py-2 bg-gray-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Auth Modal -->
+    <div
+      id="authModal"
+      class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-30"
+    >
+      <div
+        class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white"
+      >
+        <div class="mt-3 text-center">
+          <h3 class="text-lg leading-6 font-medium text-gray-900">
+            Login or Register
+          </h3>
+          <div class="mt-2 px-7 py-3">
+            <div id="loginForm">
+              <input
+                type="text"
+                id="loginUsername"
+                placeholder="Username"
+                class="mb-3 px-3 py-2 border rounded w-full text-gray-700"
+                required
+              />
+              <input
+                type="password"
+                id="loginPassword"
+                placeholder="Password"
+                class="mb-3 px-3 py-2 border rounded w-full text-gray-700"
+                required
+              />
+              <button
+                id="loginButton"
+                class="px-4 py-2 bg-blue-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300"
+              >
+                Login
+              </button>
+            </div>
+            <div id="registerForm" class="hidden">
+              <input
+                type="text"
+                id="registerUsername"
+                placeholder="Username"
+                class="mb-3 px-3 py-2 border rounded w-full text-gray-700"
+                required
+              />
+              <input
+                type="password"
+                id="registerPassword"
+                placeholder="Password"
+                class="mb-3 px-3 py-2 border rounded w-full text-gray-700"
+                required
+              />
+              <input
+                type="email"
+                id="registerEmail"
+                placeholder="Email"
+                class="mb-3 px-3 py-2 border rounded w-full text-gray-700"
+                required
+              />
+              <button
+                id="registerButton"
+                class="px-4 py-2 bg-green-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-300"
+              >
+                Register
+              </button>
+            </div>
+            <button
+              id="toggleAuthForm"
+              class="mt-3 text-blue-500 hover:text-blue-700"
+            >
+              Switch to Register
+            </button>
+          </div>
+          <button
+            id="closeAuthBtn"
+            class="mt-3 px-4 py-2 bg-gray-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        console.log("DOM fully loaded and parsed");
+
+        const video = document.getElementById("videoPlayer");
+        const muteBtn = document.getElementById("muteBtn");
+        const fullscreenBtn = document.getElementById("fullscreenBtn");
+        const analyticsBtn = document.getElementById("analyticsBtn");
+        const analyticsModal = document.getElementById("analyticsModal");
+        const closeAnalyticsBtn = document.getElementById("closeAnalyticsBtn");
+        const adminBtn = document.getElementById("adminBtn");
+        const loader = document.getElementById("loader");
+        const loginBtn = document.getElementById("loginBtn");
+        const authModal = document.getElementById("authModal");
+        const loginForm = document.getElementById("loginForm");
+        const registerForm = document.getElementById("registerForm");
+        const toggleAuthForm = document.getElementById("toggleAuthForm");
+        const closeAuthBtn = document.getElementById("closeAuthBtn");
+
+        let isLoggedIn = false;
+        let isAdmin = false;
+
+        function initializeHls() {
+          console.log("Initializing HLS");
+          if (Hls.isSupported()) {
+            let hls = new Hls({ debug: true, enableWorker: true });
+            hls.loadSource("/hls/playlist.m3u8");
+            hls.attachMedia(video);
+            hls.on(Hls.Events.MANIFEST_PARSED, function () {
+              console.log("HLS manifest parsed, attempting to play");
+              loader.style.display = "none";
+              video
+                .play()
+                .catch((e) => console.error("Error attempting to play:", e));
+            });
+            hls.on(Hls.Events.ERROR, function (event, data) {
+              console.error("HLS error event:", event);
+              console.error("HLS error data:", data);
+            });
+          } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+            console.log("Using native HLS support");
+            video.src = "/hls/playlist.m3u8";
+            video.addEventListener("loadedmetadata", function () {
+              console.log("Video metadata loaded, attempting to play");
+              loader.style.display = "none";
+              video
+                .play()
+                .catch((e) => console.error("Error attempting to play:", e));
+            });
+          } else {
+            console.error("HLS is not supported on this browser");
+            loader.style.display = "none";
+          }
+        }
+
+        initializeHls();
+
+        muteBtn.addEventListener("click", function () {
+          console.log("Mute button clicked");
+          video.muted = !video.muted;
+          muteBtn.textContent = video.muted ? "Unmute" : "Mute";
+        });
+
+        fullscreenBtn.addEventListener("click", function () {
+          console.log("Fullscreen button clicked");
+          if (video.requestFullscreen) {
+            video.requestFullscreen();
+          } else if (video.mozRequestFullScreen) {
+            video.mozRequestFullScreen();
+          } else if (video.webkitRequestFullscreen) {
+            video.webkitRequestFullscreen();
+          } else if (video.msRequestFullscreen) {
+            video.msRequestFullscreen();
+          }
+        });
+
+        analyticsBtn.addEventListener("click", function () {
+          console.log("Analytics button clicked");
+          if (!isLoggedIn) {
+            alert("Please log in to view analytics");
+            return;
+          }
+          fetch("/analytics")
+            .then((response) => response.json())
+            .then((data) => {
+              console.log("Analytics data received:", data);
+              let content = "<ul>";
+              for (const [key, value] of Object.entries(data)) {
+                content += `<li>${key}: ${JSON.stringify(value)}</li>`;
+              }
+              content += "</ul>";
+              document.getElementById("analyticsContent").innerHTML = content;
+              analyticsModal.classList.remove("hidden");
+            })
+            .catch((error) =>
+              console.error("Error fetching analytics:", error)
+            );
+        });
+
+        closeAnalyticsBtn.addEventListener("click", function () {
+          console.log("Close analytics button clicked");
+          analyticsModal.classList.add("hidden");
+        });
+
+        adminBtn.addEventListener("click", function () {
+          if (isAdmin) {
+            console.log("Admin button clicked");
+            window.location.href = "/admin"; // Ensure this redirects to the admin page.
+          } else {
+            alert("You are not authorized to access the admin panel.");
+          }
+        });
+
+        loginBtn.addEventListener("click", function () {
+          if (isLoggedIn) {
+            // Logout
+            fetch("/logout", { method: "POST" })
+              .then((response) => response.json())
+              .then((data) => {
+                console.log("Logout response:", data);
+                isLoggedIn = false;
+                isAdmin = false;
+                loginBtn.textContent = "Login";
+                adminBtn.classList.add("hidden");
+              })
+              .catch((error) => console.error("Error logging out:", error));
+          } else {
+            // Show auth modal
+            authModal.classList.remove("hidden");
+          }
+        });
+
+        closeAuthBtn.addEventListener("click", function () {
+          authModal.classList.add("hidden");
+        });
+
+        toggleAuthForm.addEventListener("click", function () {
+          loginForm.classList.toggle("hidden");
+          registerForm.classList.toggle("hidden");
+          toggleAuthForm.textContent = loginForm.classList.contains("hidden")
+            ? "Switch to Login"
+            : "Switch to Register";
+        });
+
+        document
+          .getElementById("loginButton")
+          .addEventListener("click", function () {
+            const username = document.getElementById("loginUsername").value;
+            const password = document.getElementById("loginPassword").value;
+
+            fetch("/login", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ username, password }),
+            })
+              .then((response) => response.json())
+              .then((data) => {
+                console.log("Login response:", data);
+                if (data.success) {
+                  isLoggedIn = true;
+                  isAdmin = data.isAdmin;
+                  loginBtn.textContent = "Logout";
+                  authModal.classList.add("hidden");
+                  if (isAdmin) {
+                    adminBtn.classList.remove("hidden");
+                  }
+                } else {
+                  alert(data.message);
+                }
+              })
+              .catch((error) => console.error("Error logging in:", error));
+          });
+
+        document
+          .getElementById("registerButton")
+          .addEventListener("click", function () {
+            const username = document.getElementById("registerUsername").value;
+            const password = document.getElementById("registerPassword").value;
+            const email = document.getElementById("registerEmail").value;
+
+            fetch("/register", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ username, password, email }),
+            })
+              .then((response) => response.json())
+              .then((data) => {
+                console.log("Register response:", data);
+                if (data.success) {
+                  alert("Registration successful. Please log in.");
+                  loginForm.classList.remove("hidden");
+                  registerForm.classList.add("hidden");
+                  toggleAuthForm.textContent = "Switch to Register";
+                } else {
+                  alert(data.message);
+                }
+              })
+              .catch((error) => console.error("Error registering:", error));
+          });
+
+        video.addEventListener("error", function (e) {
+          console.error("Video error:", video.error);
+        });
+
+        // Log video events
+        [
+          "loadstart",
+          "durationchange",
+          "loadedmetadata",
+          "loadeddata",
+          "progress",
+          "canplay",
+          "canplaythrough",
+          "play",
+          "pause",
+          "seeking",
+          "seeked",
+          "waiting",
+          "playing",
+          "timeupdate",
+          "ended",
+          "error",
+        ].forEach((eventName) => {
+          video.addEventListener(eventName, () =>
+            console.log(`Video event: ${eventName}`)
+          );
+        });
+      });
+    </script>
+  </body>
+</html>

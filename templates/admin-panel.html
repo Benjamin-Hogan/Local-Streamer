@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Panel - HoganLivestream</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-gray-100">
+    <div class="container mx-auto px-4 py-8">
+      <h1 class="text-3xl font-bold mb-8">Admin Panel</h1>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div class="bg-white p-6 rounded-lg shadow-md">
+          <h2 class="text-2xl font-semibold mb-4">Video Management</h2>
+          <h3 class="text-xl font-semibold mb-2">Current Video</h3>
+          <p id="currentVideo">
+            {{ current_video['name'] if current_video else 'No video playing' }}
+          </p>
+
+          <h3 class="text-xl font-semibold mt-4 mb-2">Video List</h3>
+          <ul id="videoList" class="list-disc pl-5">
+            {% for video in video_list %}
+            <li>
+              {{ video['name'] }}
+              <button
+                onclick="removeVideo('{{ video['name'] }}')"
+                class="ml-2 px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600"
+              >
+                Remove
+              </button>
+            </li>
+            {% endfor %}
+          </ul>
+
+          <h3 class="text-xl font-semibold mt-4 mb-2">Add New Video</h3>
+          <form id="addVideoForm" enctype="multipart/form-data">
+            <input
+              type="file"
+              name="video"
+              accept=".mp4"
+              required
+              class="mb-2"
+            />
+            <button
+              type="submit"
+              class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            >
+              Add Video
+            </button>
+          </form>
+        </div>
+
+        <div class="bg-white p-6 rounded-lg shadow-md">
+          <h2 class="text-2xl font-semibold mb-4">Analytics</h2>
+          <div id="analyticsContent">
+            <h3 class="text-xl font-semibold mb-2">Play Counts</h3>
+            <ul class="list-disc pl-5">
+              {% for video, count in analytics['play_counts'].items() %}
+              <li>{{ video }}: {{ count }}</li>
+              {% endfor %}
+            </ul>
+
+            <h3 class="text-xl font-semibold mt-4 mb-2">View Durations</h3>
+            <ul class="list-disc pl-5">
+              {% for video, duration in analytics['view_durations'].items() %}
+              <li>{{ video }}: {{ duration }} seconds</li>
+              {% endfor %}
+            </ul>
+
+            <h3 class="text-xl font-semibold mt-4 mb-2">Viewer Statistics</h3>
+            <p>Peak Viewers: {{ analytics['peak_viewers'] }}</p>
+            <p>Current Viewers: {{ analytics['current_viewers'] }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      function removeVideo(filename) {
+        if (confirm(`Are you sure you want to remove ${filename}?`)) {
+          fetch("/admin/remove_video", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded",
+            },
+            body: `filename=${encodeURIComponent(filename)}`,
+          })
+            .then((response) => response.text())
+            .then((result) => {
+              alert(result);
+              location.reload();
+            })
+            .catch((error) => console.error("Error:", error));
+        }
+      }
+
+      document
+        .getElementById("addVideoForm")
+        .addEventListener("submit", function (e) {
+          e.preventDefault();
+          const formData = new FormData(this);
+          fetch("/admin/add_video", {
+            method: "POST",
+            body: formData,
+          })
+            .then((response) => response.text())
+            .then((result) => {
+              alert(result);
+              location.reload();
+            })
+            .catch((error) => console.error("Error:", error));
+        });
+    </script>
+  </body>
+</html>
